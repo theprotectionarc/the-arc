@@ -69,6 +69,33 @@
         // Create a new Instascan scanner instance
         const scanner = new Instascan.Scanner({ video: video });
 
+        // Request permission to access the camera and storage
+        navigator.permissions.query({ name: "camera" }).then(function (result) {
+            if (result.state === "granted") {
+                startScanning();
+            } else if (result.state === "prompt") {
+                navigator.mediaDevices.getUserMedia({ video: true }).then(function () {
+                    startScanning();
+                });
+            }
+        });
+
+        // Start scanning QR codes
+        function startScanning() {
+            Instascan.Camera.getCameras()
+                .then(function (cameras) {
+                    if (cameras.length > 0) {
+                        // Use the first available camera
+                        scanner.start(cameras[0]);
+                    } else {
+                        console.error("No cameras found.");
+                    }
+                })
+                .catch(function (err) {
+                    console.error("Error accessing cameras: " + err);
+                });
+        }
+
         // Add event listener for when a QR code is scanned
         scanner.addListener("scan", function (content) {
             // Add the scanned content to the array
@@ -114,20 +141,6 @@
             downloadLink.href = window.URL.createObjectURL(blob);
             downloadLink.click();
         }
-
-        // Start scanning QR codes
-        Instascan.Camera.getCameras()
-            .then(function (cameras) {
-                if (cameras.length > 0) {
-                    // Use the first available camera
-                    scanner.start(cameras[0]);
-                } else {
-                    console.error("No cameras found.");
-                }
-            })
-            .catch(function (err) {
-                console.error("Error accessing cameras: " + err);
-            });
 
         // Generate a file name based on the scanned content
         function generateFileName() {
