@@ -80,67 +80,70 @@ h1 {
         // Create an array to store scanned contents
         let scannedContents = [];
 
-        // Create a new Instascan scanner instance
-        const scanner = new Instascan.Scanner({ video: video });
+        // Request permission to access the camera
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
+            .then(function (stream) {
+                video.srcObject = stream;
+                video.play();
 
-        // Request permission to access the camera and storage
-        navigator.permissions.query({ name: "camera" }).then(function (result) {
-            if (result.state === "granted") {
-                startScanning();
-            } else if (result.state === "prompt") {
-                navigator.mediaDevices.getUserMedia({ video: true }).then(function () {
-                    startScanning();
+                // Create a new Instascan scanner instance
+                const scanner = new Instascan.Scanner({ video: video });
+
+                // Add event listener for when a QR code is scanned
+                scanner.addListener("scan", function (content) {
+                    // Add the scanned content to the array
+                    scannedContents.push(content);
+
+                    // Clear the output container
+                    output.innerHTML = "";
+
+                    // Display each scanned content as a separate paragraph
+                    scannedContents.forEach(function (scannedContent) {
+                        const paragraph = document.createElement("p");
+                        paragraph.innerText = scannedContent;
+                        output.appendChild(paragraph);
+                    });
+
+                    // Show the scanned contents
+                    scannedContentsContainer.style.display = "block";
+
+                    // Disable the video element and the scanner
+                    video.pause();
+                    video.srcObject.getTracks()[0].stop();
+                    scanner.stop();
+
+                    // Automatically download the scanned contents
+                    downloadScannedContents();
+
+                    // Refresh the page
+                    setTimeout(function () {
+                        location.reload();
+                    }, 2000); // 2 seconds delay before refreshing
                 });
-            }
-        });
 
-        // Start scanning QR codes
-        function startScanning() {
-            Instascan.Camera.getCameras()
-                .then(function (cameras) {
-                    if (cameras.length > 0) {
-                        // Use the first available camera
-                        scanner.start(cameras[0]);
-                    } else {
-                        console.error("No cameras found.");
-                    }
-                })
-                .catch(function (err) {
-                    console.error("Error accessing cameras: " + err);
-                });
-        }
+                // Start scanning QR codes
+                Instascan.Camera.getCameras()
+                    .then(function (cameras) {
+                        if (cameras.length > 0) {
+                            // Find the back camera
+                            const backCamera = cameras.find(function (camera) {
+                                return camera.facing === "environment";
+                            });
 
-        // Add event listener for when a QR code is scanned
-        scanner.addListener("scan", function (content) {
-            // Add the scanned content to the array
-            scannedContents.push(content);
-
-            // Clear the output container
-            output.innerHTML = "";
-
-            // Display each scanned content as a separate paragraph
-            scannedContents.forEach(function (scannedContent) {
-                const paragraph = document.createElement("p");
-                paragraph.innerText = scannedContent;
-                output.appendChild(paragraph);
+                            // Use the back camera if available; otherwise, use the first camera
+                            const selectedCamera = backCamera || cameras[0];
+                            scanner.start(selectedCamera);
+                        } else {
+                            console.error("No cameras found.");
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error("Error accessing cameras: " + err);
+                    });
+            })
+            .catch(function (err) {
+                console.error("Error accessing camera: " + err);
             });
-
-            // Show the scanned contents
-            scannedContentsContainer.style.display = "block";
-
-            // Disable the video element and the scanner
-            video.pause();
-            video.srcObject.getTracks()[0].stop();
-            scanner.stop();
-
-            // Automatically download the scanned contents
-            downloadScannedContents();
-
-            // Refresh the page
-            setTimeout(function () {
-                location.reload();
-            }, 2000); // 2 seconds delay before refreshing
-        });
 
         // Function to download the scanned contents
         function downloadScannedContents() {
