@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Code Scanner</title>
+    <script src="https://rawgit.com/schmich/instascan-builds/master/instascan.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+        }
+
+        #container {
+            max-width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        #output {
+            margin-top: 10px;
+            text-align: center;
+        }
+
+        #scannedContents {
+            max-width: 100%;
+            height: auto;
+            text-align: center;
+        }
+
+        @media (min-width: 600px) {
+            #container {
+                width: 600px;
+                height: 600px;
+                border: 2px solid black;
+                border-radius: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <h1>QR Code Scanner</h1>
+        <video id="video" autoplay></video>
+        <div id="output">
+            <div id="scannedContents"></div>
+        </div>
+    </div>
+
+    <script>
+        // Get the necessary elements
+        const video = document.getElementById("video");
+        const output = document.getElementById("output");
+        const scannedContentsContainer = document.getElementById("scannedContents");
+
+        // Create an array to store scanned contents
+        let scannedContents = [];
+
+        // Create a new Instascan scanner instance
+        const scanner = new Instascan.Scanner({ video: video });
+
+        // Add event listener for when a QR code is scanned
+        scanner.addListener("scan", function (content) {
+            // Add the scanned content to the array
+            scannedContents.push(content);
+
+            // Clear the output container
+            output.innerHTML = "";
+
+            // Display each scanned content as a separate paragraph
+            scannedContents.forEach(function (scannedContent) {
+                const paragraph = document.createElement("p");
+                paragraph.innerText = scannedContent;
+                output.appendChild(paragraph);
+            });
+
+            // Show the scanned contents
+            scannedContentsContainer.style.display = "block";
+
+            // Disable the video element and the scanner
+            video.pause();
+            video.srcObject.getTracks()[0].stop();
+            scanner.stop();
+
+            // Automatically download the scanned contents
+            downloadScannedContents();
+
+            // Refresh the page
+            setTimeout(function () {
+                location.reload();
+            }, 2000); // 2 seconds delay before refreshing
+        });
+
+        // Function to download the scanned contents
+        function downloadScannedContents() {
+            // Create a Blob with the scanned contents
+            const textToSave = scannedContents.join("\n");
+            const blob = new Blob([textToSave], { type: "text/plain" });
+
+            // Create a temporary download link and click it to trigger the download
+            const downloadLink = document.createElement("a");
+            const fileName = generateFileName();
+            downloadLink.download = fileName;
+            downloadLink.href = window.URL.createObjectURL(blob);
+            downloadLink.click();
+        }
+
+        // Start scanning QR codes
+        Instascan.Camera.getCameras()
+            .then(function (cameras) {
+                if (cameras.length > 0) {
+                    // Use the first available camera
+                    scanner.start(cameras[0]);
+                } else {
+                    console.error("No cameras found.");
+                }
+            })
+            .catch(function (err) {
+                console.error("Error accessing cameras: " + err);
+            });
+
+        // Generate a file name based on the scanned content
+        function generateFileName() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, "0");
+            const day = String(now.getDate()).padStart(2, "0");
+            const hours = String(now.getHours()).padStart(2, "0");
+            const minutes = String(now.getMinutes()).padStart(2, "0");
+            const seconds = String(now.getSeconds()).padStart(2, "0");
+
+            return `scanned_contents_${year}${month}${day}_${hours}${minutes}${seconds}.txt`;
+        }
+    </script>
+</body>
+</html>
