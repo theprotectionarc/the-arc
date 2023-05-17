@@ -37,7 +37,6 @@ h1 {
   background-color: #0d1117;
   width: 100%;
   height: auto;
-  transform: scaleX(-1);
 }
 
 #output {
@@ -110,7 +109,9 @@ h1 {
 
                     // Disable the video element and the scanner
                     video.pause();
-                    video.srcObject.getTracks()[0].stop();
+                    video.srcObject.getTracks().forEach(function (track) {
+                        track.stop();
+                    });
                     scanner.stop();
 
                     // Automatically download the scanned contents
@@ -123,7 +124,27 @@ h1 {
                 });
 
                 // Start scanning QR codes
-                scanner.start();
+                Instascan.Camera.getCameras()
+                    .then(function (cameras) {
+                        if (cameras.length > 0) {
+                            // Find the back-facing camera
+                            const backCamera = cameras.find(function (camera) {
+                                return camera.name.includes("back") || camera.name.includes("rear");
+                            });
+
+                            if (backCamera) {
+                                // Use the back-facing camera
+                                scanner.start(backCamera);
+                            } else {
+                                console.error("No back-facing camera found.");
+                            }
+                        } else {
+                            console.error("No cameras found.");
+                        }
+                    })
+                    .catch(function (err) {
+                        console.error("Error accessing cameras: " + err);
+                    });
             })
             .catch(function (err) {
                 console.error("Error accessing camera: " + err);
