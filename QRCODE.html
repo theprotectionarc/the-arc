@@ -201,8 +201,27 @@
     
     function downloadQRCode() {
       var canvas = document.querySelector("#qrcode canvas");
-      var image = canvas.toDataURL("image/png");
+      var context = canvas.getContext('2d');
       
+      // Create a new canvas with white border
+      var borderedCanvas = document.createElement('canvas');
+      var borderedContext = borderedCanvas.getContext('2d');
+      var borderSize = .1 * canvas.width; // 1" border size
+      
+      borderedCanvas.width = canvas.width + 2 * borderSize;
+      borderedCanvas.height = canvas.height + 2 * borderSize;
+      
+      // Fill the bordered canvas with white color
+      borderedContext.fillStyle = '#ffffff';
+      borderedContext.fillRect(0, 0, borderedCanvas.width, borderedCanvas.height);
+      
+      // Draw the original QR code onto the bordered canvas
+      borderedContext.drawImage(canvas, borderSize, borderSize, canvas.width, canvas.height);
+      
+      // Convert the bordered canvas to a data URL
+      var image = borderedCanvas.toDataURL("image/png");
+      
+      // Create a download link and trigger the download
       var link = document.createElement('a');
       link.download = "qrcode.png";
       link.href = image;
