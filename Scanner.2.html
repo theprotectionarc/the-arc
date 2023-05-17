@@ -69,6 +69,7 @@ h1 {
         <div id="output">
             <div id="scannedContents"></div>
         </div>
+        <button id="cameraSwitchButton" style="display: none;">Switch Camera</button>
     </div>
 
     <script>
@@ -76,9 +77,13 @@ h1 {
         const video = document.getElementById("video");
         const output = document.getElementById("output");
         const scannedContentsContainer = document.getElementById("scannedContents");
+        const cameraSwitchButton = document.getElementById("cameraSwitchButton");
 
         // Create an array to store scanned contents
         let scannedContents = [];
+
+        // Flag to keep track of the currently selected camera
+        let selectedCamera;
 
         // Request permission to access the camera
         navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: "environment" } } })
@@ -125,17 +130,16 @@ h1 {
                 Instascan.Camera.getCameras()
                     .then(function (cameras) {
                         if (cameras.length > 0) {
-                            // Find the back camera
-                            const backCamera = cameras.find(function (camera) {
-                                return camera.facing === "environment";
-                            });
+                            // Use the first camera by default
+                            selectedCamera = cameras[0];
 
-                            // Use the back camera if available; otherwise, display an error message
-                            if (backCamera) {
-                                scanner.start(backCamera);
-                            } else {
-                                console.error("No back camera found.");
+                            // Enable the camera switch button if there is more than one camera
+                            if (cameras.length > 1) {
+                                cameraSwitchButton.style.display = "block";
                             }
+
+                            // Start the scanner with the selected camera
+                            scanner.start(selectedCamera);
                         } else {
                             console.error("No cameras found.");
                         }
@@ -174,7 +178,18 @@ h1 {
 
             return `scanned_contents_${year}${month}${day}_${hours}${minutes}${seconds}.txt`;
         }
+
+        // Add event listener to the camera switch button
+        cameraSwitchButton.addEventListener("click", function () {
+            // Toggle between front and back camera
+            selectedCamera = selectedCamera === "user" ? "environment" : "user";
+
+            // Stop the current scanner
+            scanner.stop();
+
+            // Start the scanner with the new selected camera
+            scanner.start(selectedCamera);
+        });
     </script>
 </body>
 </html>
-
